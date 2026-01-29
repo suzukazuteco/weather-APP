@@ -1,0 +1,16 @@
+body {
+  font-family: sans-serif;
+  max-width: 480px;
+  margin: 40px auto;
+  padding: 0 16px;
+}
+
+select, button {
+  font-size: 16px;
+  padding: 6px 12px;
+  margin-right: 8px;
+}
+
+#result {
+  margin-top: 20px;
+}
