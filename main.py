@@ -1,4 +1,5 @@
 import requests
+import AreaCodeData
 
 area = input("地域名を入力してください:")
 
