@@ -12,7 +12,7 @@
       <form action="/test" method="get" class="d-flex align-items-center">
   <select class="form-select w-auto" name="area">
   <option value="">--地域名を選んでください--</option>
-  {% for name, code in areas.items() %}
+  {% for name in areas.items() %}
     <option value="{{ name }}">{{ name }}</option>
   {% endfor %}
 </select>
