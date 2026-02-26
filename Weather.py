@@ -6,17 +6,24 @@ import AreaCodeData
 # response = requests.get("https://www.jma.go.jp/bosai/common/const/area.json")
 # data = response.json()
 
-def weatherResult(area):
-    area_code = None
+def weatherResult(area_code):
+    # area_code = None
+
+    # for name, code in AreaCodeData.codeData.items():
+    #     if name == area:
+    #         area_code = code
+    #         break
+
+    # if area_code == None:
+    #     print("地域が見つかりません")
+    #     exit()
+    
+    areaname = None
 
     for name, code in AreaCodeData.codeData.items():
-        if name == area:
-            area_code = code
+        if code == area_code:
+            areaname = name
             break
-
-    if area_code == None:
-        print("地域が見つかりません")
-        exit()
 
     areaData = requests.get(f"https://www.jma.go.jp/bosai/forecast/data/forecast/{area_code}.json").json()
 
@@ -24,4 +31,4 @@ def weatherResult(area):
 
     maxtemps = areaData[1]["timeSeries"][1]["areas"][0]["tempsMax"][1]
 
-    return "明日の天気は" + weather + "、最高気温は" + maxtemps + "℃です。"
+    return {"areaname":areaname,"weather":weather,"maxtemps":maxtemps}
