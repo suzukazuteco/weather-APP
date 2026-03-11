@@ -22,6 +22,12 @@ def init_db():
         )
     """)
     
+    # テスト用の初期ユーザーを挿入（既に存在する場合はスキップ）
+    conn.execute(
+        "INSERT OR IGNORE INTO users (username, hashed_password) VALUES (?, ?)",
+        ("tanaka", "$2b$12$wm/kP53vQXriFzR7cLP9l.e97cG5.MHGHTL4VT7uCgMiGYvYceNZ6")
+    )
+
     conn.commit()
     conn.close()
     print("データベースが初期化されました")
