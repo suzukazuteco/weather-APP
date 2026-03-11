@@ -2,6 +2,185 @@
 
 このステップでは、気象庁APIを利用して ある都道府県名が入力されたら、その地域に関する情報をユーザーに提供するプログラムを作成します。
 
+## セットアップ
+
+### 必要なパッケージのインストール
+
+```bash
+pip install -r requirements.txt
+```
+
+### データベース初期化
+
+アプリケーション起動時に自動的にSQLiteデータベース（`users.db`）が作成されます。
+
+### サーバー起動
+
+```bash
+uvicorn main:app --reload
+```
+
+サーバーは http://localhost:8000 で起動します。
+
+---
+
+## 認証機能
+
+このアプリケーションには、ユーザー認証機能が実装されています。
+
+### セッション管理について
+
+**最もシンプルな方法**として、**署名付きCookie**を使用したセッション管理を採用しています。
+
+#### なぜこの方法が簡単か
+1. **追加のストレージ不要**: Redisなどのセッションストアが不要
+2. **FastAPI標準機能**: 特別なライブラリの追加が最小限
+3. **ステートレス**: サーバー側でセッション情報を管理する必要がない
+
+#### セキュリティ
+- SECRET_KEYで署名されたCookieを使用（改ざん検知）
+- パスワードはbcryptでハッシュ化して保存
+- HTTPOnly Cookieを使用してXSS攻撃を防止
+- SameSite=Laxを設定してCSRF攻撃を緩和
+
+---
+
+## 認証API仕様
+
+### 1. ユーザー登録
+
+**エンドポイント**: `POST /api/register`
+
+**リクエストボディ**:
+```json
+{
+  "username": "tanaka",
+  "password": "mypassword123"
+}
+```
+
+**レスポンス** (201 Created):
+```json
+{
+  "message": "ユーザー登録が完了しました",
+  "username": "tanaka"
+}
+```
+
+**エラーレスポンス**:
+- 400 Bad Request: ユーザー名が既に存在する場合
+  ```json
+  {
+    "detail": "このユーザー名は既に使用されています"
+  }
+  ```
+- 400 Bad Request: パスワードが短すぎる場合
+  ```json
+  {
+    "detail": "パスワードは6文字以上である必要があります"
+  }
+  ```
+
+---
+
+### 2. ログイン
+
+**エンドポイント**: `POST /api/login`
+
+**リクエストボディ**:
+```json
+{
+  "username": "tanaka",
+  "password": "mypassword123"
+}
+```
+
+**レスポンス** (200 OK):
+```json
+{
+  "message": "ログインしました",
+  "username": "tanaka"
+}
+```
+
+セッションCookieがレスポンスヘッダーに設定されます（有効期限: 7日間）。
+
+**エラーレスポンス** (401 Unauthorized):
+```json
+{
+  "detail": "ユーザー名またはパスワードが正しくありません"
+}
+```
+
+---
+
+### 3. ログアウト
+
+**エンドポイント**: `POST /api/logout`
+
+**レスポンス** (200 OK):
+```json
+{
+  "message": "ログアウトしました"
+}
+```
+
+セッションCookieが削除されます。
+
+---
+
+### 4. 現在のユーザー情報取得
+
+**エンドポイント**: `GET /api/me`
+
+**レスポンス** (200 OK):
+```json
+{
+  "username": "tanaka"
+}
+```
+
+**エラーレスポンス** (401 Unauthorized):
+```json
+{
+  "detail": "ログインが必要です"
+}
+```
+
+---
+
+## 使用例（curl）
+
+### ユーザー登録
+```bash
+curl -X POST http://localhost:8000/api/register \
+  -H "Content-Type: application/json" \
+  -d '{"username":"tanaka","password":"mypassword123"}'
+```
+
+### ログイン
+```bash
+curl -X POST http://localhost:8000/api/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"tanaka","password":"mypassword123"}' \
+  -c cookies.txt
+```
+
+### 現在のユーザー情報取得
+```bash
+curl -X GET http://localhost:8000/api/me \
+  -b cookies.txt
+```
+
+### ログアウト
+```bash
+curl -X POST http://localhost:8000/api/logout \
+  -b cookies.txt \
+  -c cookies.txt
+```
+
+---
+
 ## 課題
 ### 課題1
 Python で以下を満たすプログラム main.py を作成してください。
@@ -104,7 +283,7 @@ FastAPIでサーバーを立て、フォームからエリアコードを受け�
 
 | メソッド | パス | 説明 |
 |----------|------|------|
-| GET | `/api/areas` | 都道府県一覧を返す |
+| GET | `s/api/area` | 都道府県一覧を返す |
 | GET | `/api/weather/{area_code}` | 指定エリアコードの天気予報を返す |
 
 1. `GET /api/areas`
@@ -185,26 +364,51 @@ weather-APP/
 
 ※ 進め方がわからない場合は、ページ末尾の「ヒント」を参照してください。
 
-### 課題5 ― ユーザー登録・ログイン機能
-- 課題4で作成した天気予報APIに、**ユーザー登録・ログイン機能** を追加してください。
-- データベースには **SQLite** を使用してください。
-- ログインしていないユーザーは天気予報機能を利用できないようにしてください（**認証必須**）。
-- セッション管理は **Cookie ベースのセッション** で実装してください。
+### 課題5 ― ユーザー登録・ログイン機能（穴埋め問題）
+- 課題4で作成した天気予報APIに、**ユーザー登録・ログイン機能** を追加します。
+- `main.py`、`database.py` にはコードの骨組みが用意されています。**コメントのヒントを参考に、空欄部分を埋めて** 機能を完成させてください。
+- `auth.py`（認証ヘルパー）は実装済みです。中身を読んで使い方を理解してください。
 
-◆ データベース仕様（SQLite）
+◆ 穴埋め箇所
 
-テーブル名：`users`
+**database.py**
 
-| カラム名 | 型 | 説明 |
-|----------|------|------|
-| id | INTEGER (PRIMARY KEY, AUTOINCREMENT) | ユーザーID |
-| username | TEXT (UNIQUE, NOT NULL) | ユーザー名 |
-| password_hash | TEXT (NOT NULL) | ハッシュ化されたパスワード |
+| 関数 | 穴埋め内容 |
+|------|-----------|
+| `create_user()` | `conn.execute()` の中身が空。ユーザーをINSERTするSQLを書く |
 
-- パスワードは **平文で保存しない**こと（`bcrypt` や `hashlib` 等でハッシュ化する）
-- データベースファイルは `weather.db` として保存する
+**main.py**
 
-◆ API 仕様（追加・変更分）
+| 課題 | 関数 | 穴埋め内容 |
+|------|------|-----------|
+| 課題5-1 | `register()` | (1) `existing_user` にユーザー重複チェックの結果を代入する（ヒント：`database.get_user_by_username` を使う） |
+| | | (2) パスワードバリデーションの条件式にバグがある。正しく修正する |
+| | | (3) パスワードをハッシュ化し、`success` にユーザー作成の結果を代入する（ヒント：`auth.hash_password`、`database.create_user` を使う） |
+| 課題5-2 | `login()` | (1) `user` にユーザー取得の結果を代入する |
+| | | (2) ユーザーが存在しない、またはパスワードが一致しない場合のエラー処理を追加する（ヒント：`auth.verify_password` を使う） |
+
+◆ 進め方
+
+1. まず `auth.py` と `database.py` を読み、どんな関数が用意されているか把握する
+2. `database.py` の `create_user()` にINSERT文を書く
+3. `main.py` の課題5-1（`register`）の穴埋めを行う
+4. `main.py` の課題5-2（`login`）の穴埋めを行う
+5. サーバーを起動し、Swagger UI（`http://localhost:8000/docs`）でテストする
+
+◆ テスト方法
+
+サーバー起動後、Swagger UI（`http://localhost:8000/docs`）から各APIを実行してテストできます。
+
+```bash
+uvicorn main:app --reload
+```
+
+1. `/api/register` でユーザー登録 → 201が返ればOK
+2. 同じユーザー名で再度登録 → 400エラーが返ればOK
+3. `/api/login` でログイン → 200が返ればOK
+4. 間違ったパスワードでログイン → 401エラーが返ればOK
+
+◆ API 仕様（参考）
 
 | メソッド | パス | 認証 | 説明 |
 |----------|------|------|------|
@@ -212,8 +416,6 @@ weather-APP/
 | POST | `/api/login` | 不要 | ログイン |
 | POST | `/api/logout` | 必要 | ログアウト |
 | GET | `/api/me` | 必要 | ログイン中のユーザー情報を返す |
-| GET | `/api/areas` | **必要** | （課題4と同じ、認証必須に変更） |
-| GET | `/api/weather/{area_code}` | **必要** | （課題4と同じ、認証必須に変更） |
 
 1. `POST /api/register`
    - リクエストボディ：
@@ -224,7 +426,7 @@ weather-APP/
      ```json
      { "message": "ユーザー登録が完了しました", "username": "tanaka" }
      ```
-   - ユーザー名が既に存在する場合（409）：
+   - ユーザー名が既に存在する場合（400）：
      ```json
      { "detail": "このユーザー名は既に使用されています" }
      ```
@@ -258,48 +460,6 @@ weather-APP/
      ```json
      { "detail": "ログインが必要です" }
      ```
-
-5. `/api/areas` と `/api/weather/{area_code}` は未ログイン時に **401** を返す
-
-◆ 画面仕様
-
-1. ログイン画面（初期表示 or 未ログイン時）
-   - ユーザー名とパスワードの入力欄を表示する
-   - 「ログイン」ボタンと「新規登録」ボタンを配置する
-   - ログイン成功時は天気予報画面に切り替わる
-   - 新規登録成功時は「登録完了」メッセージを表示し、ログイン画面に戻る
-   - エラー時はエラーメッセージを画面に表示する
-
-2. 天気予報画面（ログイン後）
-   - 画面上部に「こんにちは、{ユーザー名}さん」とログアウトボタンを表示する
-   - 天気予報の機能は課題4と同じ（ドロップダウンで地域選択 → 天気表示）
-   - ログアウトボタン押下時はログイン画面に戻る
-   - **画面の切り替えはページ遷移なし（JavaScript で表示/非表示を切り替える）で行う**
-
-◆ ファイル構成（例）
-
-```
-weather-APP/
-├── main.py            # FastAPI（API定義 + セッション管理）
-├── weather.py         # 気象庁APIからデータ取得
-├── AreaCodeData.py    # 都道府県コードデータ
-├── database.py        # SQLite 接続・テーブル作成
-├── weather.db         # SQLite データベースファイル（自動生成）
-└── static/
-    ├── index.html     # ログイン画面 + 天気予報画面
-    ├── script.js      # fetch処理・DOM操作・認証制御
-    └── style.css      # スタイル
-```
-
-◆ 出力（例）
-
-1. 初回アクセス → ログイン画面が表示される
-2. 新規登録：ユーザー名「tanaka」、パスワード「mypassword123」で登録 → 「ユーザー登録が完了しました」
-3. ログイン：登録した情報でログイン → 「こんにちは、tanakaさん」と天気予報画面が表示される
-4. 天気取得：東京を選択 → 「地域：東京 / 天気：晴れ / 最高気温：14℃」
-5. ログアウト → ログイン画面に戻る
-
-※ 進め方がわからない場合は、ページ末尾の「ヒント」を参照してください。
 
 ### 課題6 ― マイ地域登録・天気表示
 - 課題5で作成したログイン機能付きアプリに、**マイ地域登録機能** を追加してください。
@@ -433,6 +593,45 @@ weather-APP/
 6. ログアウト → 再ログイン → 大阪の天気だけが自動表示される
 
 ※ 進め方がわからない場合は、ページ末尾の「ヒント」を参照してください。
+
+## フロントエンド実装方針（課題5・6共通）
+
+課題5・6のフロントエンドは **React 等のフレームワークは使わず、Vanilla JS（素の JavaScript）** で実装する。
+現在の `static/script.js` + `fetch` API + DOM操作の構成をそのまま拡張する形で対応できる。
+
+### 画面切り替え方式
+
+- `index.html` 内に **ログイン画面用の `div`** と **天気予報画面用の `div`** を用意する
+- `display: none` / `display: block` の切り替えで画面遷移を表現する（ページリロードなし）
+- ログイン状態の判定は、ページ読み込み時に `GET /api/me` を呼び出して行う
+
+```html
+<!-- 例 -->
+<div id="loginSection">  <!-- ログイン画面 --></div>
+<div id="weatherSection" style="display: none;">  <!-- 天気予報画面 --></div>
+```
+
+```javascript
+// 画面切り替えの例
+function showWeatherSection() {
+    document.getElementById('loginSection').style.display = 'none';
+    document.getElementById('weatherSection').style.display = 'block';
+}
+```
+
+### API 呼び出し
+
+- `fetch` で各エンドポイント（`/api/login`, `/api/register`, `/api/logout` 等）を呼ぶ
+- レスポンスの JSON を元に DOM を更新する
+- Cookie ベースのセッションなので、`fetch` の `credentials` 設定に注意する（同一オリジンなら既定で送信される）
+
+### 課題6 のマイ地域管理(余裕があったら)
+
+- `/api/my-areas` 系の API を `fetch` で呼び出し、レスポンスをもとに DOM を動的に生成・更新する
+- ログイン直後に `GET /api/my-areas/weather` を呼んで一覧表示する
+- 追加・削除後は一覧を再取得して画面を更新する
+
+---
 
 ## (備考)調査について
 
