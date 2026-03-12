@@ -64,7 +64,8 @@ def register(request: RegisterRequest):
     success:bool = False
 
     # ユーザー名の重複チェック(ヒント:database.pyのget_user_by_usernameを使う)
-
+    if database.get_user_by_username(request.username) != None:
+        existing_user = True
     # 既にユーザーがいる場合、エラーを返す
     if existing_user:
         raise HTTPException(
@@ -80,7 +81,8 @@ def register(request: RegisterRequest):
         )
     
     # パスワードをハッシュ化してユーザーを作成(auth.py, database.pyを使うcreate_userのSQLを作る)
-    
+    hassed_password = auth.hash_password(request.password)
+    success = database.create_user(request.username, hassed_password)
     
     if not success:
         raise HTTPException(
@@ -97,9 +99,13 @@ def login(request: LoginRequest, response: Response):
     """ログイン"""
     user = None
     # ユーザーを取得
-    
+    user = database.get_user_by_username(request.username)
     # ユーザーが存在しない、またはパスワードが一致しない場合
-    
+    if not user or not auth.verify_password(request.password,user["hashed_password"]):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="ユーザー名またはパスワードが違います"
+        )
     # セッションCookieを設定
     session_token = auth.create_session_token(user["username"])
     response.set_cookie(

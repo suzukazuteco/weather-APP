@@ -13,15 +13,15 @@ serializer = URLSafeTimedSerializer(SECRET_KEY)
 
 def hash_password(password: str) -> str:
     """パスワードをハッシュ化"""
-    # bcryptは72バイトまでしか扱えないため、事前に切り詰める
-    password_bytes = password.encode('utf-8')[:72]
+    
+    password_bytes = password.encode('utf-8')
     salt = bcrypt.gensalt()
     hashed = bcrypt.hashpw(password_bytes, salt)
     return hashed.decode('utf-8')
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """パスワードを検証"""
-    password_bytes = plain_password.encode('utf-8')[:72]
+    password_bytes = plain_password.encode('utf-8')
     hashed_bytes = hashed_password.encode('utf-8')
     return bcrypt.checkpw(password_bytes, hashed_bytes)
 

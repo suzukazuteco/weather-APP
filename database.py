@@ -37,7 +37,8 @@ def create_user(username: str, hashed_password: str) -> bool:
     try:
         conn = get_db_connection()
         conn.execute(
-
+            "INSERT INTO users (username, hashed_password) VALUES (?, ?)",
+            (username, hashed_password)
         )
         conn.commit()
         conn.close()

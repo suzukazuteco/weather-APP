@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
+    <link rel="stylesheet" href="/static/style.css">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>天気予報</title>
@@ -8,7 +9,34 @@
     <!-- <link rel="stylesheet" href="/style.css"> -->
 </head>
 <body>
-    <div class="container mt-5">
+    <ul id="Login" style="display: True;">
+        <div id="login form" class="Login form">
+            <h2>ログイン</h2>
+            <div>
+                <label for="login_username">ユーザー名:</label>
+                <input type="text" id="login_username"/>
+            </div>
+            <div>
+                <label for="login_password">パスワード:</label>
+                <input type="password" id="login_password"required />
+            </div>
+            <input id="getLoginData" type="submit" value="ログイン" />
+            </div>
+        <div id="register form" class="Register Form">
+            <h2>新規登録</h2>
+            <div>
+                <label for="register_username">ユーザー名を決めてください:</label>
+                <input type="text" id="register_username"/>
+            </div>
+            <div>
+                <label for="register_password">パスワードを決めてください:</label>
+                <input type="password" id="register_password"required />
+            </div>
+            <input id="getRegisterData" type="submit" value="登録" />
+        </div>
+    </ul>
+    
+    <div class="WeatherApp" style="display: none;">
         <h1 class="mb-4">天気予報</h1>
 
         <div class="d-flex align-items-center mb-3">
@@ -27,6 +55,96 @@
 
     <!-- <script src="/script.js"></script> -->
     <script type="module">
+        // response例
+        // {
+        //     "detail": "ログインが必要です"
+        // }
+
+        // session check
+        c
+
+        // Login
+        const getlogindata = document.getElementById("getLoginData");
+        getlogindata.addEventListener("click", loginclicked);
+        function loginclicked(e){
+            console.log("ok");
+            const loginform = document.getElementById("login form");
+            // 1. 各input要素を個別に取得する
+            const usernameInput = document.getElementById("login_username");
+            const passwordInput = document.getElementById("login_password");
+
+            // 2. .value を使って中身を取り出す
+            const usernameValue = usernameInput.value;
+            const passwordValue = passwordInput.value;
+
+            console.log("ユーザー名:", usernameValue);
+            console.log("パスワード:", passwordValue);
+
+            const loginData = {"username": usernameValue, "password": passwordValue};
+
+            fetch("/api/login", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json" // これが非常に重要！
+                },
+                body: JSON.stringify(loginData) // オブジェクトをJSON文字列に変換
+            })
+            .then(response => {
+                if (!response.ok) {
+                    // 400 や 500 エラーの場合
+                    return response.json().then(err => { throw new Error(err.detail) });
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log("成功:", data.message);
+            })
+            .catch(error => {
+                console.error("エラー:", error.message);
+            });
+            
+        }
+
+        // register
+        const getregisterdata = document.getElementById("getRegisterData");
+        getregisterdata.addEventListener("click", registerclicked);
+        function registerclicked(e){
+            const registerform = document.getElementById("register form");
+
+            const rusernameInput = document.getElementById("register_username");
+            const rpasswordInput = document.getElementById("register_password");
+            const rusernameValue = rusernameInput.value;
+            const rpasswordValue = rpasswordInput.value;
+
+            console.log("ユーザー名:", rusernameValue);
+            console.log("パスワード:", rpasswordValue);
+
+            const registerData = {"username": rusernameValue, "password": rpasswordValue};
+
+            fetch("/api/register", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json" // これが非常に重要！
+                },
+                body: JSON.stringify(registerData) // オブジェクトをJSON文字列に変換
+            })
+            .then(response => {
+                if (!response.ok) {
+                    // 400 や 500 エラーの場合
+                    return response.json().then(err => { throw new Error(err.detail) });
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log("成功:", data.message);
+            })
+            .catch(error => {
+                console.error("エラー:", error.message);
+            });
+        }
+
+
+        // getWeather
         const response = await fetch("/api/areas");
         const data = await response.json();
         console.log(data)
@@ -37,14 +155,33 @@
             option.textContent = area.name;
             select.appendChild(option);
         });
-        
-        const getWeatherBtn = document.getElementById("getWeatherBtn");
+        const areatext = document.createElement("areatext");
         select.addEventListener("change", changed);
-        function changed(e){
+        async function changed(e){
             const selectedOption = e.target.selectedOptions[0];
             console.log(selectedOption.value);
+            const response2 = await fetch(`/api/weather/${selectedOption.value}`);
+            const areaData = await response2.json();
+            const getWeatherBtn = document.getElementById("getWeatherBtn");
+            const weatherResult = document.getElementById("weatherResult");
+            
+       
+            getWeatherBtn.addEventListener("click", clicked);
+            function clicked(e){
+                console.log(areaData);
+                const areaName = areaData.areaname;
+                const areaWeather = areaData.weather;
+                const areaMaxtemps = areaData.maxtemps;
+                if(weatherResult.contains(areatext)){
+                    console.log(weatherResult.contains(areatext));
+                    weatherResult.removeChild(areatext);
+                }
+                areatext.textContent = `${areaName}の今日の天気は${areaWeather}、最高気温は${areaMaxtemps}です。`;
+                weatherResult.appendChild(areatext);
+            }
         }
-        // const response2 = await fetch(`/api/weather/${value}`);
+
+        
 
     </script>
 </body>
