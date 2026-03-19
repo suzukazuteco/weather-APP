@@ -9,7 +9,7 @@
     <!-- <link rel="stylesheet" href="/style.css"> -->
 </head>
 <body>
-    <ul id="Login" style="display: True;">
+    <ul id="Login" style="display: none;">
         <div id="login form" class="Login form">
             <h2>ログイン</h2>
             <div>
@@ -36,7 +36,7 @@
         </div>
     </ul>
     
-    <div class="WeatherApp" style="display: none;">
+    <ul id="WeatherApp" class="WeatherApp" style="display: none;">
         <h1 class="mb-4">天気予報</h1>
 
         <div class="d-flex align-items-center mb-3">
@@ -51,8 +51,9 @@
         <div id="weatherResult" class="mt-4">
 
         </div>
-    </div>
-
+        <buttun id="logoutButtun" class="btn btn-secound">Logout</buttun>
+    </ul>
+    
     <!-- <script src="/script.js"></script> -->
     <script type="module">
         // response例
@@ -61,13 +62,25 @@
         // }
 
         // session check
-        c
+        const response3 = await fetch("/api/me");
 
+        if(response3.ok){
+            const WeatherApp = document.getElementById("WeatherApp");
+            WeatherApp.style.display="block";
+            const Login = document.getElementById("Login");
+            Login.style.display="none";
+            
+        }else{
+            const Login = document.getElementById("Login");
+            Login.style.display="block";
+            const WeatherApp = document.getElementById("WeatherApp");
+            WeatherApp.style.display="none";
+        }
+        
         // Login
         const getlogindata = document.getElementById("getLoginData");
         getlogindata.addEventListener("click", loginclicked);
         function loginclicked(e){
-            console.log("ok");
             const loginform = document.getElementById("login form");
             // 1. 各input要素を個別に取得する
             const usernameInput = document.getElementById("login_username");
@@ -76,9 +89,6 @@
             // 2. .value を使って中身を取り出す
             const usernameValue = usernameInput.value;
             const passwordValue = passwordInput.value;
-
-            console.log("ユーザー名:", usernameValue);
-            console.log("パスワード:", passwordValue);
 
             const loginData = {"username": usernameValue, "password": passwordValue};
 
@@ -97,12 +107,11 @@
                 return response.json();
             })
             .then(data => {
-                console.log("成功:", data.message);
+                location.replace(location.href);
             })
             .catch(error => {
                 console.error("エラー:", error.message);
             });
-            
         }
 
         // register
@@ -115,9 +124,6 @@
             const rpasswordInput = document.getElementById("register_password");
             const rusernameValue = rusernameInput.value;
             const rpasswordValue = rpasswordInput.value;
-
-            console.log("ユーザー名:", rusernameValue);
-            console.log("パスワード:", rpasswordValue);
 
             const registerData = {"username": rusernameValue, "password": rpasswordValue};
 
@@ -136,18 +142,18 @@
                 return response.json();
             })
             .then(data => {
-                console.log("成功:", data.message);
+                location.replace(location.href);
             })
             .catch(error => {
                 console.error("エラー:", error.message);
             });
+            
         }
 
 
         // getWeather
         const response = await fetch("/api/areas");
         const data = await response.json();
-        console.log(data)
         const select = document.getElementById("areaSelect");
         data.forEach(area => {
             const option = document.createElement("option");
@@ -159,7 +165,6 @@
         select.addEventListener("change", changed);
         async function changed(e){
             const selectedOption = e.target.selectedOptions[0];
-            console.log(selectedOption.value);
             const response2 = await fetch(`/api/weather/${selectedOption.value}`);
             const areaData = await response2.json();
             const getWeatherBtn = document.getElementById("getWeatherBtn");
@@ -168,12 +173,10 @@
        
             getWeatherBtn.addEventListener("click", clicked);
             function clicked(e){
-                console.log(areaData);
                 const areaName = areaData.areaname;
                 const areaWeather = areaData.weather;
                 const areaMaxtemps = areaData.maxtemps;
                 if(weatherResult.contains(areatext)){
-                    console.log(weatherResult.contains(areatext));
                     weatherResult.removeChild(areatext);
                 }
                 areatext.textContent = `${areaName}の今日の天気は${areaWeather}、最高気温は${areaMaxtemps}です。`;
@@ -181,6 +184,30 @@
             }
         }
 
+        //Logout
+        const LogoutBtn = document.getElementById("logoutButtun");
+        LogoutBtn.addEventListener("click", logoutclicked);
+        function logoutclicked(e){
+            fetch("/api/logout", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json" // これが非常に重要！
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    // 400 や 500 エラーの場合
+                    return response.json().then(err => { throw new Error(err.detail) });
+                }
+                return response.json();
+            })
+            .then(data => {
+            })
+            .catch(error => {
+                console.error("エラー:", error.message);
+            });
+            location.reload();
+        }
         
 
     </script>
