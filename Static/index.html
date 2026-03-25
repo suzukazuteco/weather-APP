@@ -32,6 +32,7 @@
                 <div class="field-group">
                     <input id="getLoginData" class="button button-primary" type="submit" value="ログイン">
                 </div>
+                <div id="loginErrorMessage" class="error-banner d-none" role="alert"></div>
             </div>
 
             <div id="register form" class="panel auth-card">
@@ -49,6 +50,8 @@
                 <div class="field-group">
                     <input id="getRegisterData" class="button button-secondary" type="submit" value="登録">
                 </div>
+                <div id="registerErrorMessage" class="error-banner d-none" role="alert"></div>
+                <div id="registerSuccessMessage" class="success-banner d-none" role="status" aria-live="polite"></div>
             </div>
         </ul>
 
@@ -65,17 +68,25 @@
 
                 <div class="weather-controls">
                     <div class="field-group">
-                        <label for="areaSelect">地域</label>
-                        <div class="select-shell">
-                        <select id="areaSelect">
-                            <option value="">-- 地域を選択 --</option>
-                        </select>
+                        <label for="areaTrigger">地域</label>
+                        <div class="select-shell" id="areaDropdown">
+                            <button
+                                id="areaTrigger"
+                                class="select-trigger"
+                                type="button"
+                                aria-haspopup="listbox"
+                                aria-expanded="false"
+                                aria-controls="areaOptions"
+                            >
+                                <span id="areaTriggerLabel">-- 地域を選択 --</span>
+                            </button>
+                            <div id="areaOptions" class="select-options d-none" role="listbox" aria-labelledby="areaTrigger"></div>
                         </div>
                     </div>
                     <button id="getWeatherBtn" class="button button-primary" type="button">取得</button>
                 </div>
 
-                <div id="errorMessage" class="error-banner d-none" role="alert"></div>
+                <div id="weatherErrorMessage" class="error-banner d-none" role="alert"></div>
 
                 <div id="weatherResult" class="weather-result">
                     <div class="weather-empty">

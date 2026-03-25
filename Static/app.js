@@ -2,23 +2,55 @@ const loginView = document.getElementById("Login");
 const weatherApp = document.getElementById("WeatherApp");
 const loginButton = document.getElementById("getLoginData");
 const registerButton = document.getElementById("getRegisterData");
-const areaSelect = document.getElementById("areaSelect");
+const dropdown = document.getElementById("areaDropdown");
+const areaTrigger = document.getElementById("areaTrigger");
+const areaTriggerLabel = document.getElementById("areaTriggerLabel");
+const areaOptions = document.getElementById("areaOptions");
 const getWeatherButton = document.getElementById("getWeatherBtn");
 const weatherResult = document.getElementById("weatherResult");
-const errorMessage = document.getElementById("errorMessage");
+const loginErrorMessage = document.getElementById("loginErrorMessage");
+const registerErrorMessage = document.getElementById("registerErrorMessage");
+const registerSuccessMessage = document.getElementById("registerSuccessMessage");
+const weatherErrorMessage = document.getElementById("weatherErrorMessage");
 const logoutButton = document.getElementById("logoutButtun");
 
 let selectedAreaCode = "";
 let selectedWeatherData = null;
 
-function showError(message) {
+function showError(message, scope = "login") {
+    const errorMessage = scope === "weather"
+        ? weatherErrorMessage
+        : scope === "register"
+            ? registerErrorMessage
+            : loginErrorMessage;
+
     errorMessage.textContent = message;
     errorMessage.classList.remove("d-none");
 }
 
-function clearError() {
-    errorMessage.textContent = "";
-    errorMessage.classList.add("d-none");
+function showRegisterSuccess(message) {
+    registerSuccessMessage.textContent = message;
+    registerSuccessMessage.classList.remove("d-none");
+}
+
+function clearError(scope) {
+    const messages = scope
+        ? [scope === "weather"
+            ? weatherErrorMessage
+            : scope === "register"
+                ? registerErrorMessage
+                : loginErrorMessage]
+        : [loginErrorMessage, registerErrorMessage, weatherErrorMessage];
+
+    messages.forEach((errorMessage) => {
+        errorMessage.textContent = "";
+        errorMessage.classList.add("d-none");
+    });
+
+    if (!scope || scope === "register") {
+        registerSuccessMessage.textContent = "";
+        registerSuccessMessage.classList.add("d-none");
+    }
 }
 
 function showWeatherApp() {
@@ -31,6 +63,18 @@ function showLoginApp() {
     weatherApp.style.display = "none";
 }
 
+function openDropdown() {
+    dropdown.classList.add("is-open");
+    areaOptions.classList.remove("d-none");
+    areaTrigger.setAttribute("aria-expanded", "true");
+}
+
+function closeDropdown() {
+    dropdown.classList.remove("is-open");
+    areaOptions.classList.add("d-none");
+    areaTrigger.setAttribute("aria-expanded", "false");
+}
+
 function renderWeather(areaData) {
     weatherResult.innerHTML = `
         <article class="forecast-card">
@@ -41,10 +85,19 @@ function renderWeather(areaData) {
             <p class="forecast-weather">${areaData.weather}</p>
             <div class="forecast-meta">
                 <span class="meta-chip">最高気温 ${areaData.maxtemps}</span>
-                <span class="meta-chip">地域コード ${selectedAreaCode}</span>
             </div>
         </article>
     `;
+}
+
+function updateSelectedOption() {
+    const options = areaOptions.querySelectorAll(".select-option");
+
+    options.forEach((option) => {
+        const isSelected = option.dataset.code === selectedAreaCode;
+        option.classList.toggle("is-selected", isSelected);
+        option.setAttribute("aria-selected", String(isSelected));
+    });
 }
 
 async function handleJsonResponse(response) {
@@ -71,7 +124,7 @@ async function checkSession() {
 }
 
 async function onLoginClick() {
-    clearError();
+    clearError("login");
 
     const usernameInput = document.getElementById("login_username");
     const passwordInput = document.getElementById("login_password");
@@ -93,12 +146,12 @@ async function onLoginClick() {
         location.replace(location.href);
     } catch (error) {
         console.error("エラー:", error.message);
-        showError(error.message);
+        showError(error.message, "login");
     }
 }
 
 async function onRegisterClick() {
-    clearError();
+    clearError("register");
 
     const usernameInput = document.getElementById("register_username");
     const passwordInput = document.getElementById("register_password");
@@ -116,11 +169,28 @@ async function onRegisterClick() {
             body: JSON.stringify(registerData)
         });
 
-        await handleJsonResponse(response);
-        location.replace(location.href);
+        const data = await handleJsonResponse(response);
+        showRegisterSuccess(data.message || "新規登録が完了しました");
+
+        setTimeout(() => {
+            location.replace(location.href);
+        }, 1200);
     } catch (error) {
         console.error("エラー:", error.message);
-        showError(error.message);
+        showError(error.message, "register");
+    }
+}
+
+function selectArea(code, name) {
+    selectedAreaCode = code;
+    selectedWeatherData = null;
+    areaTriggerLabel.textContent = name;
+    updateSelectedOption();
+    clearError("weather");
+    closeDropdown();
+
+    if (selectedAreaCode) {
+        preloadWeather(selectedAreaCode);
     }
 }
 
@@ -130,24 +200,19 @@ async function loadAreas() {
         const data = await handleJsonResponse(response);
 
         data.forEach((area) => {
-            const option = document.createElement("option");
-            option.value = area.code;
-            option.textContent = area.name;
-            areaSelect.appendChild(option);
+            const optionButton = document.createElement("button");
+            optionButton.type = "button";
+            optionButton.className = "select-option";
+            optionButton.dataset.code = area.code;
+            optionButton.role = "option";
+            optionButton.setAttribute("aria-selected", "false");
+            optionButton.textContent = area.name;
+            optionButton.addEventListener("click", () => selectArea(area.code, area.name));
+            areaOptions.appendChild(optionButton);
         });
     } catch (error) {
         console.error("エラー:", error.message);
-        showError(error.message);
-    }
-}
-
-function onAreaChange(event) {
-    selectedAreaCode = event.target.value;
-    selectedWeatherData = null;
-    clearError();
-
-    if (selectedAreaCode) {
-        preloadWeather(selectedAreaCode);
+        showError(error.message, "weather");
     }
 }
 
@@ -166,11 +231,11 @@ async function preloadWeather(areaCode) {
 
 async function onGetWeatherClick() {
     if (!selectedAreaCode) {
-        showError("地域を選択してください");
+        showError("地域を選択してください", "weather");
         return;
     }
 
-    clearError();
+    clearError("weather");
 
     try {
         if (!selectedWeatherData) {
@@ -184,12 +249,12 @@ async function onGetWeatherClick() {
         renderWeather(selectedWeatherData);
     } catch (error) {
         console.error("エラー:", error.message);
-        showError(error.message);
+        showError(error.message, "weather");
     }
 }
 
 async function onLogoutClick() {
-    clearError();
+    clearError("weather");
 
     try {
         const response = await fetch("/api/logout", {
@@ -203,15 +268,39 @@ async function onLogoutClick() {
         location.reload();
     } catch (error) {
         console.error("エラー:", error.message);
-        showError(error.message);
+        showError(error.message, "weather");
+    }
+}
+
+function onTriggerClick() {
+    if (dropdown.classList.contains("is-open")) {
+        closeDropdown();
+        return;
+    }
+
+    openDropdown();
+}
+
+function onDocumentClick(event) {
+    if (!dropdown.contains(event.target)) {
+        closeDropdown();
+    }
+}
+
+function onDocumentKeydown(event) {
+    if (event.key === "Escape") {
+        closeDropdown();
+        areaTrigger.focus();
     }
 }
 
 loginButton.addEventListener("click", onLoginClick);
 registerButton.addEventListener("click", onRegisterClick);
-areaSelect.addEventListener("change", onAreaChange);
+areaTrigger.addEventListener("click", onTriggerClick);
 getWeatherButton.addEventListener("click", onGetWeatherClick);
 logoutButton.addEventListener("click", onLogoutClick);
+document.addEventListener("click", onDocumentClick);
+document.addEventListener("keydown", onDocumentKeydown);
 
 await checkSession();
 await loadAreas();
