@@ -21,7 +21,15 @@ def init_db():
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS users_area (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            myarea TEXT,
+            FOREIGN KEY(user_id) REFERENCES users(id)
+        )""")
     
+
     # テスト用の初期ユーザーを挿入（既に存在する場合はスキップ）
     conn.execute(
         "INSERT OR IGNORE INTO users (username, hashed_password) VALUES (?, ?)",
